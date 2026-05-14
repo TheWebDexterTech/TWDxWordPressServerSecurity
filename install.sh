@@ -54,6 +54,11 @@ info "System : $OS $VER ($(uname -m))"
 info "WP path: $WP_PATH (owner: $WP_USER)"
 info "Reboot : $REBOOT_TIME UTC | WP updates: day=$WP_CRON_DOW at ${WP_CRON_HOUR}:00 UTC"
 
+# Validate WP_PATH actually exists and looks like WordPress
+if [[ ! -f "$WP_PATH/wp-includes/version.php" ]]; then
+    warn "Could not find WordPress at $WP_PATH. The cron job will be installed, but may fail if WP is not deployed."
+fi
+
 # ── 1. unattended-upgrades ────────────────────────────────────────────────────
 step "OS auto-updates (unattended-upgrades)"
 
