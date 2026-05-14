@@ -192,13 +192,21 @@ curl -fsSL "$REPO_URL/scripts/wp-auto-update.sh.tpl" | \
 chmod +x /usr/local/bin/wp-auto-update.sh
 touch "$LOG_FILE"
 
-crontab -l 2>/dev/null | grep -v "wp-auto-update" | grep -v "vm-system-cleanup" | crontab -
-(crontab -l 2>/dev/null; echo "$CRON_SCHEDULE /usr/local/bin/wp-auto-update.sh") | crontab -
+# Safely update crontab without triggering pipefail errors on fresh servers
+TMP_CRON=$(mktemp)
+crontab -l 2>/dev/null > "$TMP_CRON" || true
+sed -i '/wp-auto-update/d' "$TMP_CRON"
+sed -i '/vm-system-cleanup/d' "$TMP_CRON"
+
+echo "$CRON_SCHEDULE /usr/local/bin/wp-auto-update.sh" >> "$TMP_CRON"
 
 if [ "$ENABLE_CLEANUP" = "true" ]; then
     CLEANUP_SCHEDULE=$(echo "$CRON_SCHEDULE" | sed 's/^[^ ]*/30/')
-    (crontab -l 2>/dev/null; echo "$CLEANUP_SCHEDULE /usr/local/bin/vm-system-cleanup.sh") | crontab -
+    echo "$CLEANUP_SCHEDULE /usr/local/bin/vm-system-cleanup.sh" >> "$TMP_CRON"
 fi
+
+crontab "$TMP_CRON"
+rm -f "$TMP_CRON"
 
 success "Cron jobs scheduled via CRON_SCHEDULE: $CRON_SCHEDULE"
 
