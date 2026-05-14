@@ -1,8 +1,5 @@
-AI_MAP.md
 AI_LOG.md
-semgrep-findings.json
-node_modules/
+AI_MAP.md
 dist/
-AI_MAP.md
-AI_LOG.md
+node_modules/
 semgrep-findings.json
