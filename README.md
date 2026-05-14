@@ -1,4 +1,3 @@
-```markdown
 # VM-Auto-security
 
 Hands-off maintenance for headless WordPress servers on Ubuntu 24.04. Set it up once and forget about it — security patches, bug fixes, service restarts, kernel reboots, system cleanup, and WordPress updates all happen automatically.
@@ -154,13 +153,6 @@ systemctl disable --now unattended-upgrades
 rm /usr/local/bin/wp /usr/local/bin/wp-auto-update.sh /usr/local/bin/vm-system-cleanup.sh
 
 ```
-
----
-
 ## License
 
 MIT
-
-```
-
-```
