@@ -162,7 +162,7 @@ rm /usr/local/bin/wp /usr/local/bin/wp-auto-update.sh /usr/local/bin/vm-system-c
 
 If this script saved you time, server costs, or weekend headaches, consider dropping a tip! It helps keep the project maintained and the open-source updates coming.
 
-[![Support via Stripe](https://img.shields.io/badge/Support_via-Stripe-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://buy.stripe.com/your_link_here)
+[![Support via Stripe](https://img.shields.io/badge/Support_via-Stripe-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://buy.stripe.com/7sY5kDaZx1ixbcS5gCc7u00)
 
 ---
 
