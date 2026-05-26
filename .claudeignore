@@ -1,0 +1,5 @@
+# Files Claude Code should exclude from its file index
+
+LICENSE
+cleanup.sh
+README.md

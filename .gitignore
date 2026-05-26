@@ -1,0 +1,8 @@
+.DS_Store
+*.swp
+*.swo
+*~
+.claude/
+dist/
+node_modules/
+semgrep-findings.json
