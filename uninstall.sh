@@ -7,9 +7,9 @@
 set -euo pipefail
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
-BOLD='\033[1m'; CYAN='\033[0;36m'; NC='\033[0m'
+BLUE='\033[0;34m'; BOLD='\033[1m'; CYAN='\033[0;36m'; NC='\033[0m'
 
-info()    { echo -e "\033[0;34m[info]${NC}  $*"; }
+info()    { echo -e "${BLUE}[info]${NC}  $*"; }
 success() { echo -e "${GREEN}[ ok ]${NC}  $*"; }
 warn()    { echo -e "${YELLOW}[warn]${NC}  $*"; }
 error()   { echo -e "${RED}[fail]${NC}  $*" >&2; exit 1; }
@@ -35,13 +35,13 @@ fi
 
 # Systemd timer and service
 systemctl disable --now auto-reboot.timer 2>/dev/null || true
-rm -f /etc/systemd/system/auto-reboot.{service,timer}
+rm -f /etc/systemd/system/auto-reboot.service /etc/systemd/system/auto-reboot.timer
 systemctl daemon-reload
 success "Removed auto-reboot timer"
 
-# Scripts
-for f in /usr/local/bin/wp-auto-update.sh /usr/local/bin/vm-system-cleanup.sh; do
-    [[ -f "$f" ]] && rm -f "$f" && success "Removed $f"
+# Scripts and locks
+for f in /usr/local/bin/wp-auto-update.sh /usr/local/bin/vm-system-cleanup.sh /var/lock/wp-auto-update.lock; do
+    [[ -e "$f" ]] && rm -f "$f" && success "Removed $f"
 done
 
 # WP-CLI (optional — user may want to keep it)
@@ -55,6 +55,17 @@ fi
 # Log rotation config
 rm -f /etc/logrotate.d/twdxwpss /etc/logrotate.d/vm-auto-security
 success "Removed logrotate config"
+
+# fail2ban jail (we shipped it, we remove it)
+if [[ -f /etc/fail2ban/jail.local ]]; then
+    echo -e "  Remove fail2ban jail.local? [y/N]: \c"
+    read -r rm_jail
+    if [[ "$rm_jail" =~ ^[Yy]$ ]]; then
+        rm -f /etc/fail2ban/jail.local
+        systemctl restart fail2ban 2>/dev/null || true
+        success "Removed fail2ban jail.local"
+    fi
+fi
 
 # Disable unattended-upgrades and fail2ban (optional)
 echo -e "  Disable unattended-upgrades and fail2ban? [y/N]: \c"
@@ -71,6 +82,24 @@ if [[ -f /etc/sysctl.d/99-twdxwpss-hardening.conf ]]; then
     success "Removed kernel hardening config and reloaded sysctl"
 fi
 
+# SSH drop-in (harden.sh, new style — just remove the file)
+if [[ -f /etc/ssh/sshd_config.d/99-twdxwpss-hardening.conf ]]; then
+    rm -f /etc/ssh/sshd_config.d/99-twdxwpss-hardening.conf
+    systemctl reload ssh 2>/dev/null || true
+    success "Removed SSH hardening drop-in"
+fi
+
+# SSH config backup (legacy harden.sh — pre-drop-in installs only)
+if [[ -f /etc/ssh/sshd_config.bak ]]; then
+    echo -e "  Legacy SSH backup found. Restore original SSH config? [y/N]: \c"
+    read -r rm_ssh
+    if [[ "$rm_ssh" =~ ^[Yy]$ ]]; then
+        cp /etc/ssh/sshd_config.bak /etc/ssh/sshd_config
+        systemctl restart ssh
+        success "SSH config restored and daemon restarted"
+    fi
+fi
+
 # UFW (harden.sh) — optional, user may have other rules
 if command -v ufw &>/dev/null && ufw status | grep -q "Status: active"; then
     echo -e "  Disable UFW firewall? [y/N]: \c"
@@ -78,17 +107,6 @@ if command -v ufw &>/dev/null && ufw status | grep -q "Status: active"; then
     if [[ "$rm_ufw" =~ ^[Yy]$ ]]; then
         ufw --force disable 2>/dev/null || true
         success "UFW disabled"
-    fi
-fi
-
-# SSH config backup (harden.sh) — optional restore
-if [[ -f /etc/ssh/sshd_config.bak ]]; then
-    echo -e "  Restore original SSH config from backup? [y/N]: \c"
-    read -r rm_ssh
-    if [[ "$rm_ssh" =~ ^[Yy]$ ]]; then
-        cp /etc/ssh/sshd_config.bak /etc/ssh/sshd_config
-        systemctl restart ssh
-        success "SSH config restored and daemon restarted"
     fi
 fi
 

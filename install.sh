@@ -26,6 +26,30 @@ error()   { echo -e "${RED}[fail]${NC}  $*" >&2; exit 1; }
 step()    { echo -e "\n${BOLD}▸ $*${NC}"; }
 dry_run() { echo -e "${YELLOW}[dry-run]${NC}  Would: $*"; }
 
+show_help() {
+    cat <<'EOF'
+TWDxWordPressServerSecurity Installer
+
+Usage:
+  sudo bash install.sh [--dry-run|--check] [--help|-h]
+
+Environment variables:
+  WP_PATH         Absolute path to WordPress root   [/var/www/html]
+  WP_USER         OS user owning WP files           [www-data]
+  ENABLE_CLEANUP  Auto-clean apt + journal weekly   [true]
+  CRON_SCHEDULE   WP update cron schedule           [0 3 * * 0]
+  REBOOT_TIME     Nightly reboot check (HH:MM:SS)   [03:30:00]
+  LOG_FILE        WP update log path                [/var/log/wp-auto-update.log]
+  ADMIN_EMAIL     MAILTO for cron failures          (empty)
+  DRY_RUN         Preview without applying          [false]
+
+Examples:
+  sudo bash install.sh
+  sudo bash install.sh --dry-run
+  sudo WP_PATH=/srv/wp ADMIN_EMAIL=ops@example.com bash install.sh
+EOF
+}
+
 # ── Branding ──────────────────────────────────────────────────────────────────
 echo -e "${CYAN}${BOLD}"
 echo "  ================================================================="
@@ -35,11 +59,15 @@ echo "               Developed by: TheWebDexter.com                      "
 echo "  ================================================================="
 echo -e "${NC}"
 
-# ── Dry-run mode ──────────────────────────────────────────────────────────────
+# ── Arg parsing ───────────────────────────────────────────────────────────────
 # Pass --dry-run or set DRY_RUN=true to preview changes without applying them.
 DRY_RUN="${DRY_RUN:-false}"
 for arg in "$@"; do
-    [[ "$arg" == "--dry-run" || "$arg" == "--check" ]] && DRY_RUN="true"
+    case "$arg" in
+        --help|-h)         show_help; exit 0 ;;
+        --dry-run|--check) DRY_RUN="true" ;;
+        *)                 warn "Unknown argument: $arg (use --help)" ;;
+    esac
 done
 [[ "$DRY_RUN" == "true" ]] && warn "Dry-run mode: no changes will be made."
 
@@ -54,12 +82,13 @@ REPO_URL="https://raw.githubusercontent.com/thewebdexter/TWDxWordPressServerSecu
 # ── SHA256 digests of every remote file this installer fetches ────────────────
 # Update these whenever the corresponding file changes.
 declare -A FILE_CHECKSUMS=(
-    ["configs/50unattended-upgrades"]="424fee45b14be50847c6ea4655c53846840dd81269b96f1b0520ee7c9903cc0d"
+    ["configs/50unattended-upgrades"]="a4811c3fd0334c68403d073b52f146a0634a3770eb462b7b6a41d3d02eb718fe"
     ["configs/20auto-upgrades"]="d742d9edfb7f0e166ee6b847294f4933db30a1cbacbc45adaca051f1b0ed69bb"
     ["configs/needrestart.conf"]="5dce88e62c9e1bccaca185a56d1a4d7f252b6b3f5feb280e1ea128a48fe6255b"
     ["configs/auto-reboot.service"]="246bd5f5ea830841e865ad0ab057fb2dcc1e270bfe364055a68e40111480fea0"
     ["configs/auto-reboot.timer.tpl"]="e3e8e67961657bc970a9c384c53c586c73974389c374c229a5f0e33f8385625a"
-    ["scripts/wp-auto-update.sh.tpl"]="30ee9a77a68a581c95b8b8a82b7e51441624b8e6e06bf07f1298c51f5d1c82b2"
+    ["configs/fail2ban-jail.local"]="0db1dbec014017a512bbdabd0455d14dd7ea9f6e37777eeb703b59c0eef75ccc"
+    ["scripts/wp-auto-update.sh.tpl"]="f90bcc46ffc63cd53e34c35ada0335a4b35bb060b5370bd2dcf57ad3fcee9ea2"
 )
 
 # ── Input validation ──────────────────────────────────────────────────────────
@@ -217,6 +246,8 @@ step "Preflight Checks"
 [[ $EUID -ne 0 ]] && error "Please run as root (or use sudo)."
 
 if [[ "$DRY_RUN" != "true" ]]; then
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -q
     command -v curl        &>/dev/null || apt-get install -y -q curl
     command -v lsb_release &>/dev/null || apt-get install -y -q lsb-release
     command -v sha256sum   &>/dev/null || apt-get install -y -q coreutils
@@ -238,13 +269,18 @@ step "OS security (unattended-upgrades & fail2ban)"
 if [[ "$DRY_RUN" == "true" ]]; then
     dry_run "apt-get install unattended-upgrades update-notifier-common powermgmt-base fail2ban"
     dry_run "install verified configs/50unattended-upgrades → /etc/apt/apt.conf.d/50unattended-upgrades"
-    dry_run "install verified configs/20auto-upgrades → /etc/apt/apt.conf.d/20auto-upgrades"
+    dry_run "install verified configs/20auto-upgrades       → /etc/apt/apt.conf.d/20auto-upgrades"
+    dry_run "install verified configs/fail2ban-jail.local   → /etc/fail2ban/jail.local"
 else
     apt-get install -y -q unattended-upgrades update-notifier-common powermgmt-base fail2ban
     fetch_verified "configs/50unattended-upgrades" /etc/apt/apt.conf.d/50unattended-upgrades
     fetch_verified "configs/20auto-upgrades"       /etc/apt/apt.conf.d/20auto-upgrades
+    fetch_verified "configs/fail2ban-jail.local"   /etc/fail2ban/jail.local
+    chmod 644 /etc/fail2ban/jail.local
     systemctl enable --now unattended-upgrades
-    systemctl enable --now fail2ban
+    systemctl enable fail2ban
+    # Reload picks up jail.local if fail2ban was already running.
+    systemctl restart fail2ban
     success "unattended-upgrades & fail2ban active"
 fi
 
@@ -425,7 +461,6 @@ printf "  %-28s %-14s\n" "Component" "Status"
 echo  "  ──────────────────────────────────────────"
 
 if [[ "$DRY_RUN" == "true" ]]; then
-    STATUS="${YELLOW}dry-run${NC}"
     printf "  %-28s ${YELLOW}%-14s${NC}\n" "OS security updates"  "dry-run"
     printf "  %-28s ${YELLOW}%-14s${NC}\n" "Intrusion prevention" "dry-run"
     printf "  %-28s ${YELLOW}%-14s${NC}\n" "Service restarts"     "dry-run"

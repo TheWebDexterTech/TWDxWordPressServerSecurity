@@ -13,12 +13,12 @@ Built for lean cloud setups where you want the server to take care of itself.
 | Layer | Tool | When |
 |---|---|---|
 | OS security patches + bug fixes | `unattended-upgrades` | Daily |
-| Intrusion Prevention (SSH brute-force protection) | `fail2ban` | Always Active |
+| Intrusion Prevention (SSH brute-force + repeat-offender ban) | `fail2ban` (tuned jail) | Always Active |
 | Restart services after library updates | `needrestart` | After every `apt` run |
 | Reboot if a kernel update is pending | systemd timer | Nightly (default 03:30 UTC) |
 | System Cleanup (apt caches & logs) | bash + cron | Configurable (Default: Weekly) |
 | Log Rotation (compress & clean old logs) | `logrotate` | Weekly |
-| Update WP core, plugins, themes, and DB Optimize | WP-CLI + cron | Configurable (Default: Weekly) |
+| Update WP core, plugins, themes, and DB Optimize | WP-CLI + cron (with `flock` lock) | Configurable (Default: Weekly) |
 
 ---
 
@@ -79,9 +79,9 @@ sudo bash scripts/harden.sh [--dry-run]
 
 | Layer | What it does |
 |---|---|
-| SSH daemon | Sets `PermitRootLogin no`, `PasswordAuthentication no`, `X11Forwarding no`. Validates config with `sshd -t` before restarting. Backs up the original config first. |
-| Kernel network stack | Writes `/etc/sysctl.d/99-twdxwpss-hardening.conf`: enables TCP SYN cookies, reverse-path filtering, and blocks ICMP redirect attacks. |
-| UFW firewall | Installs and enables UFW with `deny incoming` / `allow outgoing` defaults, and opens your SSH port (22), HTTP (80), and HTTPS (443). |
+| SSH daemon | Writes a drop-in at `/etc/ssh/sshd_config.d/99-twdxwpss-hardening.conf` so the main `sshd_config` is left untouched. CIS-aligned: disables root login, passwords, agent/TCP/X11 forwarding, sets `MaxAuthTries 3`, `LoginGraceTime 30`, `ClientAliveInterval 300`, and pins Mozilla "modern" KEX/Ciphers/MACs/HostKeyAlgorithms. Validates with `sshd -t` before reload. |
+| Kernel & network stack | Writes `/etc/sysctl.d/99-twdxwpss-hardening.conf`: TCP SYN cookies, rp_filter, no redirects / source routing (v4 **and** v6), martian logging, `kptr_restrict=2`, `dmesg_restrict=1`, `yama.ptrace_scope=2`, `kexec_load_disabled=1`, `unprivileged_bpf_disabled=1`, BPF JIT hardening, and the full `fs.protected_*` family. |
+| UFW firewall | Installs and enables UFW (IPv6 explicit, low logging) with `deny incoming` / `allow outgoing` defaults, and opens your SSH port (22), HTTP (80), and HTTPS (443). |
 
 **Headless example:**
 
@@ -187,11 +187,18 @@ cat /etc/cron.d/twdxwpss
 | What | Where |
 | --- | --- |
 | OS updates | `/var/log/unattended-upgrades/unattended-upgrades.log` |
-| Intrusion blocks | `/var/log/fail2ban.log` |
+| Intrusion blocks | `/var/log/fail2ban.log` (jail status: `sudo fail2ban-client status sshd`) |
 | WP updates | `/var/log/wp-auto-update.log` |
 | System Cleanup | `/var/log/vm-system-cleanup.log` |
 
 Log files are created with mode `640` (root:adm) — not world-readable.
+
+The bundled `fail2ban` jail (`/etc/fail2ban/jail.local`) ships with:
+- `sshd` jail in aggressive mode, 4 failures / 10 min triggers a 1-hour ban
+- `recidive` jail that long-bans (1 week) any IP banned three times in a day
+- Exponential bantime backoff (`bantime.increment = true`), capped at 1 week
+- `nftables-multiport` backend (modern), `systemd` journal as the log source
+- Loopback + RFC1918 in `ignoreip` — add your office/VPN CIDRs there.
 
 ---
 
@@ -199,7 +206,7 @@ Log files are created with mode `640` (root:adm) — not world-readable.
 
 * **Reboots** only happen when a kernel update is actually pending (`/var/run/reboot-required`). Most nightly checks will do nothing.
 * **Reboots with active users** are disabled by default (`Automatic-Reboot-WithUsers "false"`). The reboot will be deferred until no users are logged in, or will happen at the scheduled time regardless — see `/etc/apt/apt.conf.d/50unattended-upgrades` to adjust.
-* **WP plugin updates** flush the object cache and optimize the database automatically, but occasionally major updates can break a site. Check the log if you're actively developing.
+* **WP plugin updates** flush the object cache, sweep transients, and optimize the database automatically. Each step is independent — one failing step no longer aborts the rest. The script holds a `flock` on `/var/lock/wp-auto-update.lock` so overlapping cron firings are safely skipped, and exits with the count of failed steps so cron `MAILTO` surfaces partial failures.
 * **Service restarts** (`needrestart`) will automatically restart MySQL, nginx, PHP-FPM, and other services after library updates. Set `$nrconf{restart} = 'i'` in `configs/needrestart.conf` if you need interactive approval.
 * **Cloudflared / tunnel daemons** reconnect automatically on reboot as long as they're enabled as systemd services.
 * The installer does not touch your web server, database (other than WP native optimization), or WordPress files directly — only system-level tooling is configured.
@@ -221,8 +228,14 @@ rm -f /etc/cron.d/twdxwpss
 
 # Disable systemd timer
 systemctl disable --now auto-reboot.timer
-rm /etc/systemd/system/auto-reboot.{service,timer}
+rm /etc/systemd/system/auto-reboot.service /etc/systemd/system/auto-reboot.timer
 systemctl daemon-reload
+
+# Remove fail2ban jail and SSH/sysctl drop-ins (from harden.sh)
+rm -f /etc/fail2ban/jail.local
+rm -f /etc/ssh/sshd_config.d/99-twdxwpss-hardening.conf
+rm -f /etc/sysctl.d/99-twdxwpss-hardening.conf
+systemctl reload ssh && systemctl restart fail2ban && sysctl --system
 
 # Disable unattended-upgrades & fail2ban (optional — standard Ubuntu packages)
 systemctl disable --now unattended-upgrades fail2ban
