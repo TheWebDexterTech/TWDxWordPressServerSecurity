@@ -36,7 +36,7 @@ Built for lean cloud setups where you want the server to take care of itself.
 You do not need to clone this repository. Simply run the following one-liner on your server. It includes an interactive terminal menu to configure your maintenance schedule and cleanup preferences.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/thewebdexter/TWDxWordPressServerSecurity/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/TheWebDexterTech/TWDxWordPressServerSecurity/main/install.sh | sudo bash
 ```
 
 The script is entirely **idempotent** — it is completely safe to re-run on an existing server if you want to update your settings or get the latest features.
@@ -50,7 +50,7 @@ The script is entirely **idempotent** — it is completely safe to re-run on an 
 If you prefer to review the files locally or make your own modifications before installing, you can clone the repository directly:
 
 ```bash
-git clone https://github.com/thewebdexter/TWDxWordPressServerSecurity.git
+git clone https://github.com/TheWebDexterTech/TWDxWordPressServerSecurity.git
 cd TWDxWordPressServerSecurity
 sudo bash install.sh
 ```
@@ -128,7 +128,7 @@ If you prefer to bypass the interactive menu (e.g., for automated provisioning),
 **One-liner example:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/thewebdexter/TWDxWordPressServerSecurity/main/install.sh | \
+curl -fsSL https://raw.githubusercontent.com/TheWebDexterTech/TWDxWordPressServerSecurity/main/install.sh | \
   sudo WP_PATH=/var/www/mysite \
   WP_USER=nginx \
   ENABLE_CLEANUP=true \

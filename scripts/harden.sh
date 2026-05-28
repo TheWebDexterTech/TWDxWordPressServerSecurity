@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # TWDxWordPressServerSecurity — Server Hardening
-# https://github.com/thewebdexter/TWDxWordPressServerSecurity
+# https://github.com/TheWebDexterTech/TWDxWordPressServerSecurity
 #
 # Hardens the host OS: SSH daemon (drop-in config), kernel/network sysctls,
 # and UFW firewall. Run after install.sh — safe to re-run (idempotent).
@@ -205,7 +205,7 @@ if [[ "$DRY_RUN" == "true" ]]; then
 else
     cat > "$SYSCTL_CONF" <<'EOF'
 # TWDxWordPressServerSecurity — kernel & network hardening
-# https://github.com/thewebdexter/TWDxWordPressServerSecurity
+# https://github.com/TheWebDexterTech/TWDxWordPressServerSecurity
 # CIS Ubuntu 24.04 Benchmark §3 (Network) and §1.5 (Kernel) aligned.
 
 # ── IPv4 network hardening ──────────────────────────────────────────────────

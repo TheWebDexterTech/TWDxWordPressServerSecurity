@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # TWDxWordPressServerSecurity — Uninstaller
-# https://github.com/thewebdexter/TWDxWordPressServerSecurity
+# https://github.com/TheWebDexterTech/TWDxWordPressServerSecurity
 # =============================================================================
 
 set -euo pipefail

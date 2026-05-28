@@ -1,5 +1,5 @@
 # TWDxWordPressServerSecurity — fail2ban jail.local
-# https://github.com/thewebdexter/TWDxWordPressServerSecurity
+# https://github.com/TheWebDexterTech/TWDxWordPressServerSecurity
 #
 # Drop-in tuning for fail2ban. Ships with sshd brute-force protection and
 # a recidive jail that long-bans repeat offenders. Re-install or edit and

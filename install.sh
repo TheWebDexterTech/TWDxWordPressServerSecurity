@@ -1,13 +1,13 @@
 #!/bin/bash
 # =============================================================================
 # TWDxWordPressServerSecurity
-# https://github.com/thewebdexter/TWDxWordPressServerSecurity
+# https://github.com/TheWebDexterTech/TWDxWordPressServerSecurity
 #
 # Hands-off maintenance for headless WordPress servers.
 # Handles OS updates, service restarts, kernel reboots, and WP updates.
 #
 # Usage (One-liner):
-#   curl -fsSL https://raw.githubusercontent.com/thewebdexter/TWDxWordPressServerSecurity/main/install.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/TheWebDexterTech/TWDxWordPressServerSecurity/main/install.sh | sudo bash
 #
 # Tested: Ubuntu 24.04 LTS — aarch64 + x86_64
 # License: MIT
@@ -77,18 +77,18 @@ WP_USER="${WP_USER:-www-data}"
 REBOOT_TIME="${REBOOT_TIME:-03:30:00}"
 LOG_FILE="${LOG_FILE:-/var/log/wp-auto-update.log}"
 ADMIN_EMAIL="${ADMIN_EMAIL:-}"
-REPO_URL="https://raw.githubusercontent.com/thewebdexter/TWDxWordPressServerSecurity/main"
+REPO_URL="https://raw.githubusercontent.com/TheWebDexterTech/TWDxWordPressServerSecurity/main"
 
 # ── SHA256 digests of every remote file this installer fetches ────────────────
 # Update these whenever the corresponding file changes.
 declare -A FILE_CHECKSUMS=(
-    ["configs/50unattended-upgrades"]="a4811c3fd0334c68403d073b52f146a0634a3770eb462b7b6a41d3d02eb718fe"
+    ["configs/50unattended-upgrades"]="669c16e974d4b294f615cea65b037b96ae3a6643a6ff845971b3ff81a0424847"
     ["configs/20auto-upgrades"]="d742d9edfb7f0e166ee6b847294f4933db30a1cbacbc45adaca051f1b0ed69bb"
     ["configs/needrestart.conf"]="5dce88e62c9e1bccaca185a56d1a4d7f252b6b3f5feb280e1ea128a48fe6255b"
     ["configs/auto-reboot.service"]="246bd5f5ea830841e865ad0ab057fb2dcc1e270bfe364055a68e40111480fea0"
     ["configs/auto-reboot.timer.tpl"]="e3e8e67961657bc970a9c384c53c586c73974389c374c229a5f0e33f8385625a"
-    ["configs/fail2ban-jail.local"]="0db1dbec014017a512bbdabd0455d14dd7ea9f6e37777eeb703b59c0eef75ccc"
-    ["scripts/wp-auto-update.sh.tpl"]="f90bcc46ffc63cd53e34c35ada0335a4b35bb060b5370bd2dcf57ad3fcee9ea2"
+    ["configs/fail2ban-jail.local"]="55e48fdaf2d4b5f5738c055afc20af89e955d7d2c1204497806b9f09348b718c"
+    ["scripts/wp-auto-update.sh.tpl"]="05fa7947b6792ec068bd644b153afd42fff0ba0b98b8b465aba2cacbf53c100b"
 )
 
 # ── Input validation ──────────────────────────────────────────────────────────

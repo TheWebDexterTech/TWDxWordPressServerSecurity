@@ -1,5 +1,5 @@
 // TWDxWordPressServerSecurity — unattended-upgrades policy
-// https://github.com/thewebdexter/TWDxWordPressServerSecurity
+// https://github.com/TheWebDexterTech/TWDxWordPressServerSecurity
 
 Unattended-Upgrade::Allowed-Origins {
 	"${distro_id}:${distro_codename}";
