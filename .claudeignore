@@ -1,4 +1,17 @@
-# Files Claude Code should exclude from its file index
+# Files Claude Code should exclude from its file index.
+# Keep this list narrow — only files that are actively noisy or never
+# relevant to code work belong here. See CLAUDE.md for what each script does.
 
+# User-facing docs — repeated in CLAUDE.md, not implementation
 LICENSE
 README.md
+
+# Non-functional repo metadata
+.github/FUNDING.yml
+.github/dependabot.yml
+
+# Tooling output / local-only state (also gitignored)
+semgrep-findings.json
+.claude/
+node_modules/
+dist/
