@@ -1,0 +1,50 @@
+// TWDxWordPressServerSecurity — unattended-upgrades policy
+// https://github.com/TheWebDexterTech/TWDxWordPressServerSecurity
+
+Unattended-Upgrade::Allowed-Origins {
+	"${distro_id}:${distro_codename}";
+	"${distro_id}:${distro_codename}-security";
+	"${distro_id}ESMApps:${distro_codename}-apps-security";
+	"${distro_id}ESM:${distro_codename}-infra-security";
+	"${distro_id}:${distro_codename}-updates";
+};
+
+// Packages that should never be auto-upgraded (add holds here if needed).
+Unattended-Upgrade::Package-Blacklist {
+};
+
+Unattended-Upgrade::DevRelease "auto";
+
+// Recover from a half-applied dpkg state on the next run.
+Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+
+// Keep memory pressure low on small VMs by upgrading one package at a time.
+Unattended-Upgrade::MinimalSteps "true";
+
+// Reclaim disk by purging kernels / deps that auto-updates leave behind.
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+
+// Automatic reboot only when a kernel patch needs it; not while users active.
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "false";
+Unattended-Upgrade::Automatic-Reboot-Time "03:00";
+
+// Mail notifications only on failure; install bsd-mailx or postfix to receive.
+// Edit this address (or remove the line) to enable.
+//Unattended-Upgrade::Mail "root";
+Unattended-Upgrade::MailReport "on-change";
+
+// Network resilience: retry transient failures instead of giving up.
+Acquire::Retries "3";
+
+// Verbose journald output so failures are visible to journalctl/log shippers.
+Unattended-Upgrade::Verbose "true";
+
+// Hard cap how long a single upgrade run may stall before aborting.
+Unattended-Upgrade::OnlyOnACPower "false";
+Unattended-Upgrade::Skip-Updates-On-Metered-Connections "true";
+
+// Refuse to upgrade if /var or /boot are nearly full.
+Unattended-Upgrade::MinimalSteps "true";
