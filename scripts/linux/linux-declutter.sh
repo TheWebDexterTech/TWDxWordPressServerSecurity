@@ -268,7 +268,7 @@ if [[ "$PKG_MANAGER" == "apt" ]]; then
   dpkg --list | grep -E '^ii  linux-(image|headers|modules)' | awk '{print $2}' | tee -a "$LOG_FILE"
 
   OLD_KERNELS=$(dpkg --list | grep -E '^ii  linux-(image|headers|modules)-[0-9]' \
-                 | awk '{print $2}' | grep -v "$(echo "$CURRENT_KERNEL" | sed 's/-generic//')" || true)
+                 | awk '{print $2}' | grep -v "${CURRENT_KERNEL//-generic/}" || true)
 
   if [[ -n "$OLD_KERNELS" ]]; then
     log "\nOld kernel packages NOT matching the running kernel ($CURRENT_KERNEL):"
