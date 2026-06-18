@@ -764,7 +764,8 @@ if command -v go &>/dev/null; then
   GOPATH_BIN="$(run_as_user go env GOPATH 2>/dev/null)/bin"
   if [[ -d "$GOPATH_BIN" ]]; then
     log "\n-- go: binaries installed via 'go install' ($GOPATH_BIN) --"
-    ls -la "$GOPATH_BIN" 2>/dev/null | tee -a "$LOG_FILE"
+    find "$GOPATH_BIN" -maxdepth 1 -type f -print0 2>/dev/null \
+      | xargs -0 ls -la 2>/dev/null | tee -a "$LOG_FILE"
 
     if [[ $INTERACTIVE_CLEANUP -eq 1 ]]; then
       log "\n-- Interactive review: go-installed binaries --"
@@ -799,7 +800,7 @@ if [[ -d "$REAL_HOME/.nvm" ]]; then
   NVM_CURRENT=$(cat "$REAL_HOME/.nvm/alias/default" 2>/dev/null || echo "")
   log "  Default/current alias: ${NVM_CURRENT:-unknown}"
   log "  Installed Node versions:"
-  ls "$REAL_HOME/.nvm/versions/node" 2>/dev/null | sed 's/^/    /' | tee -a "$LOG_FILE"
+  find "$REAL_HOME/.nvm/versions/node" -maxdepth 1 -mindepth 1 -type d -exec basename {} \; 2>/dev/null | sed 's/^/    /' | tee -a "$LOG_FILE"
 
   if [[ $INTERACTIVE_CLEANUP -eq 1 ]]; then
     log "\n-- Interactive review: old Node versions (nvm) --"
@@ -819,7 +820,7 @@ if [[ -d "$REAL_HOME/.pyenv" ]]; then
   du -sh "$REAL_HOME/.pyenv" 2>/dev/null | tee -a "$LOG_FILE"
   PYENV_GLOBAL=$(cat "$REAL_HOME/.pyenv/version" 2>/dev/null || echo "")
   log "  Installed Python versions:"
-  ls "$REAL_HOME/.pyenv/versions" 2>/dev/null | sed 's/^/    /' | tee -a "$LOG_FILE"
+  find "$REAL_HOME/.pyenv/versions" -maxdepth 1 -mindepth 1 -type d -exec basename {} \; 2>/dev/null | sed 's/^/    /' | tee -a "$LOG_FILE"
   log "  Global pyenv version: ${PYENV_GLOBAL:-unknown}"
 
   if [[ $INTERACTIVE_CLEANUP -eq 1 ]]; then
@@ -840,7 +841,7 @@ if [[ -d "$REAL_HOME/.rbenv" ]]; then
   du -sh "$REAL_HOME/.rbenv" 2>/dev/null | tee -a "$LOG_FILE"
   RBENV_GLOBAL=$(cat "$REAL_HOME/.rbenv/version" 2>/dev/null || echo "")
   log "  Installed Ruby versions:"
-  ls "$REAL_HOME/.rbenv/versions" 2>/dev/null | sed 's/^/    /' | tee -a "$LOG_FILE"
+  find "$REAL_HOME/.rbenv/versions" -maxdepth 1 -mindepth 1 -type d -exec basename {} \; 2>/dev/null | sed 's/^/    /' | tee -a "$LOG_FILE"
   log "  Global rbenv version: ${RBENV_GLOBAL:-unknown}"
 
   if [[ $INTERACTIVE_CLEANUP -eq 1 ]]; then
@@ -913,6 +914,7 @@ for rc in "$REAL_HOME/.zshrc" "$REAL_HOME/.zprofile" "$REAL_HOME/.bash_profile" 
   while read -r dir; do
     dir="${dir//\$HOME/$REAL_HOME}"
     dir="${dir/#\~/$REAL_HOME}"
+    # shellcheck disable=SC2016
     [[ -z "$dir" || "$dir" == '$PATH' || "$dir" == "PATH" ]] && continue
     if [[ ! -d "$dir" ]]; then
       # Find the actual line number(s) in the file
